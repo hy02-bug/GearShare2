@@ -12,7 +12,7 @@
         "@tailwindcss/vite": "^4.0.0",
         "@vitejs/plugin-react": "^4.2.0",
         "autoprefixer": "^10.4.12",
-        "axios": "^1.8.2",
+        "axios": "^1.10.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^1.2.0",
         "postcss": "^8.4.31",
@@ -24,8 +24,12 @@
     "dependencies": {
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.0",
-        "@mui/material": "^7.1.0",
+        "@mui/icons-material": "^7.1.1",
+        "@mui/material": "^7.1.1",
+        "date-fns": "^4.1.0",
         "lucide-react": "^0.510.0",
+        "react-datepicker": "^8.4.0",
+        "react-hook-form": "^7.56.4",
         "rsuite": "^5.80.3"
     }
 }

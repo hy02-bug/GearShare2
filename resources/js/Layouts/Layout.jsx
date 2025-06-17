@@ -1,10 +1,27 @@
-import React from 'react';
-import { Bell, MessageSquare, User } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Bell, MessageSquare, User, ChevronDown } from 'lucide-react';
 import { Link, usePage } from '@inertiajs/react';
 import PropTypes from 'prop-types';
 
 export default function GearShareLayout({ header, children }) {
-  const { user } = usePage().props;
+  const { auth } = usePage().props;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -27,15 +44,45 @@ export default function GearShareLayout({ header, children }) {
           <div className="flex items-center space-x-4 text-black">
             <Bell className="w-5 h-5 cursor-pointer hover:text-gray-600" />
             <MessageSquare className="w-5 h-5 cursor-pointer hover:text-gray-600" />
-            <div className="flex items-center space-x-2">
-              <Link
-                href="/UserProfile"
-                className="hover:underline"
-                title={user?.name || 'Profile'}
+
+            {/* User Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={toggleDropdown}
+                className="flex items-center space-x-2 hover:text-gray-600 focus:outline-none"
+                type="button"
               >
-                {user?.name ? user.name.substring(0, 12) + (user.name.length > 12 ? '...' : '') : 'Profile'}
-              </Link>
-              <User className="w-6 h-6" />
+                <span className="text-sm font-medium">
+                  {auth.user?.name ?
+                    auth.user.name.substring(0, 12) + (auth.user.name.length > 12 ? '...' : '') :
+                    'Profile'
+                  }
+                </span>
+                <User className="w-6 h-6" />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
+                  <Link
+                    href="/UserProfile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    href="/logout"
+                    method="post"
+                    as="button"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    Logout
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -62,7 +109,7 @@ export default function GearShareLayout({ header, children }) {
 }
 
 GearShareLayout.propTypes = {
-  header: PropTypes.node, // Made optional since it's conditionally rendered
+  header: PropTypes.node,
   children: PropTypes.node.isRequired,
 };
 

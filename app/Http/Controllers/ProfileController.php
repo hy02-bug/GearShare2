@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Booking;
+use App\Models\Equipment;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +22,7 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-        return Inertia::render('UserProfile/UserProfile', [
+        return Inertia::render('UserProfile/Index', [
             'user' => $user,
         ]);
     }
@@ -67,5 +69,33 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+public function listings(){
+    // Get all equipment owned by the authenticated user
+    $equipment = Equipment::with(['owner:id,name,email'])
+        ->where('user_id', auth()->id())
+        ->get();
+
+    // For debugging - remove in production
+    //dd($equipment);
+
+    return Inertia::render('UserProfile/Listings', [
+        'user' => Auth::user(),
+        'equipment' => $equipment,
+    ]);
+}
+
+
+    public function customersBookings(){
+        $bookings = Booking::with(['equipment', 'owner']) // adjust as needed
+        ->where('customer_id', auth()->id())
+        ->latest()
+        ->get();
+
+    return Inertia::render('UserProfile/Customer_bookings', [
+        'user' => Auth::user(),
+        'bookings' => $bookings,
+    ]);
     }
 }

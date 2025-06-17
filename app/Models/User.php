@@ -50,4 +50,17 @@ class User extends Authenticatable
     {
         return $this->hasMany(Equipment::class);
     }
+
+    public function customerBookings()
+    {
+        return $this->hasMany(Booking::class, 'customer_id');
+    }
+
+    // Bookings for the user's equipment (they are the owner)
+    public function ownerBookings()
+    {
+        return $this->hasMany(Booking::class, 'owner_id');
+    }
+
 }
+

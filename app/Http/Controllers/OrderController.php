@@ -2,11 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
+use Illuminate\Http\Request;
 use App\Models\Equipment;
 use App\Models\Order;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Requests\UpdateOrderRequest;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Carbon;
+//use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class OrderController extends Controller
@@ -107,20 +114,285 @@ public function create($equipmentId)
         //
     }
 
-    public function summary($equipmentId)
-    {
-        $equipment = Equipment::findOrFail($equipmentId);
+    // public function summary($equipmentId)
+    // {
+    //     $equipment = Equipment::findOrFail($equipmentId);
 
-        return Inertia::render('OrderSummary', [
-            'equipment' => $equipment,
-            'user' => auth()->user(), // For prefilling user details
-        ]);
-        
-    }
+    //     return Inertia::render('OrderSummary', [
+    //         'equipment' => $equipment,
+    //         'user' => auth()->user(), // For prefilling user details
+    //     ]);
+
+    // }
 
         public function checkout()
     {
         return Inertia::render('Checkout'
         );
+    }
+// public function handleBookingRequest(Request $request, $equipmentId)
+// {
+//     // Debug: Check authentication first
+//     if (!auth()->check()) {
+//         return back()->withErrors(['error' => 'You must be logged in to make a booking']);
+//     }
+
+//     Log::info('User authenticated', ['user_id' => auth()->id()]);
+
+//     // Updated validation to match form field names
+//     $validated = $request->validate([
+//         'equipmentId' => 'required|integer|exists:equipment,id',
+//         'pickupLocation' => 'required|string|max:255',
+//         'returnLocation' => 'required|string|max:255',
+//         'pickupDate' => 'required|date|after_or_equal:today',
+//         'returnDate' => 'required|date|after:pickupDate',
+//         'totalPrice' => 'required|numeric|min:0',
+//         'customerNotes' => 'nullable|string|max:1000',
+//     ]);
+
+//     Log::info('Validation passed', ['validated_data' => $validated]);
+
+//     try {
+//         // Debug: Log the start of the process
+//         Log::info('Starting order creation', [
+//             'equipment_id' => $validated['equipmentId'],
+//             'validated_data' => $validated
+//         ]);
+
+//         // Get equipment details
+//         $equipment = Equipment::findOrFail($validated['equipmentId']);
+//         Log::info('Equipment found', [
+//             'equipment_id' => $equipment->id,
+//             'rental_price' => $equipment->rentalPrice,
+//             'user_id' => $equipment->user_id
+//         ]);
+
+//         // Use submitted total price
+//         $totalPrice = $validated['totalPrice'];
+//         Log::info('Using submitted total price', ['total_price' => $totalPrice]);
+
+//         // Create order with all the fields
+//         Log::info('About to create order with data', [
+//             'customer_id' => auth()->id(),
+//             'owner_id' => $equipment->user_id,
+//             'equipment_id' => $equipment->id,
+//             'total_price' => $totalPrice
+//         ]);
+
+//         $orderData = [
+//             'customer_id' => auth()->id(),
+//             'owner_id' => $equipment->user_id,
+//             'equipment_id' => $validated['equipmentId'],
+//             'status' => 'pending',
+//             'total_price' => $totalPrice,
+//             'security_deposit' => $equipment->rentalPrice * 0.2, // Still need equipment rental price for deposit
+//             'start_date' => $validated['pickupDate'],
+//             'end_date' => $validated['returnDate'],
+//             'pickup_location' => $validated['pickupLocation'],
+//             'return_location' => $validated['returnLocation'],
+//             'daily_rate' => $equipment->rentalPrice, // Store original daily rate for reference
+//             'customer_notes' => $validated['customerNotes'] ? [$validated['customerNotes']] : null,
+//             'owner_notes' => null,
+//         ];
+
+//         Log::info('Order data prepared', $orderData);
+
+//         $order = Order::create($orderData);
+
+//         Log::info('Order created successfully', [
+//             'order_id' => $order->id,
+//             'total_price' => $totalPrice,
+//             'daily_rate' => $equipment->rentalPrice
+//         ]);
+
+//         return redirect()->route('/Home') // Fixed route name
+//                ->with('success', 'Booking request submitted successfully!');
+
+//     } catch (\Exception $e) {
+//         Log::error('Booking failed: ' . $e->getMessage(), [
+//             'equipment_id' => $validated['equipmentId'] ?? $equipmentId,
+//             'customer_id' => auth()->id(),
+//             'line' => $e->getLine(),
+//             'file' => $e->getFile(),
+//             'trace' => $e->getTraceAsString()
+//         ]);
+
+//         return back()->withErrors(['error' => $e->getMessage()])->withInput();
+//     }
+// }
+
+
+public function handleBookingRequest(Request $request, $equipmentId)
+{
+    $validated = $request->validate([
+        'pickupLocation' => 'required|string|max:255',
+        'returnLocation' => 'required|string|max:255',
+        'pickupDate' => 'required|date',
+        'returnDate' => 'required|date',
+        'totalPrice' => 'required|numeric',
+    ]);
+
+    $equipment = Equipment::findOrFail($equipmentId);
+
+    $booking = Booking::create([
+        'customer_id'   => auth()->id(), // or however you're getting the user
+        'equipment_id'  => $equipmentId,
+        'owner_id'      => $equipment->user_id,
+        'pickup_loc'    => $validated['pickupLocation'],
+        'return_loc'    => $validated['returnLocation'],
+        'start_date'    => Carbon::parse($validated['pickupDate'])->format('Y-m-d'),
+        'end_date'      => Carbon::parse($validated['returnDate'])->format('Y-m-d'),
+        'total_price'   => $validated['totalPrice'],
+    ]);
+
+    return back()->with('success', 'Booking created!');
+}
+
+
+/**
+ * Show order summary page
+ */
+public function summary(Booking $booking, Equipment $equipment)
+{
+    try {
+        Log::info('Accessing booking summary', [
+            'booking_id' => $booking->id,
+            'equipment_id' => $equipment->id,
+            'user_id' => auth()->id()
+        ]);
+
+        // Ensure the authenticated user owns this booking
+        if ($booking->customer_id !== auth()->id()) {
+            Log::warning('Unauthorized booking access attempt', [
+                'booking_id' => $booking->id,
+                'user_id' => auth()->id()
+            ]);
+            return redirect()->back()->withErrors(['error' => 'Unauthorized access to booking.']);
+        }
+
+        return Inertia::render('BookingSummary', [
+            'bookings' => $booking->load(['equipment', 'owner']),
+            'equipment' => $equipment,
+            'user' => auth()->user(),
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Booking summary page error: ' . $e->getMessage(), [
+            'booking_id' => $booking->id ?? null,
+            'equipment_id' => $equipment->id ?? null,
+            'user_id' => auth()->id(),
+            'error' => $e->getTraceAsString()
+        ]);
+
+        return redirect()->back()->withErrors(['error' => 'Unable to load booking summary.']);
+    }
+}
+
+public function fetchOwnerOrders()
+{
+    // Get only orders for the authenticated owner's equipment
+    $bookings = Booking::with(['customer', 'equipment'])
+        ->where('owner_id', auth()->id())
+         // Only show pending requests
+        ->latest()
+        ->get()
+        ->map(function ($booking) {
+            return [
+                'id' => $booking->id,
+                'start_date' => $booking->start_date,
+                'end_date' => $booking->end_date,
+                'pickup_location' => $booking->pickup_loc,
+                'return_location' => $booking->return_loc,
+                'status' => $booking->status,
+                'total_price' => $booking->total_price,
+                //'security_deposit' => $booking->security_deposit,
+                'customer' => $booking->customer ? [
+                    'name' => $booking->customer->name,
+                    //'email' => $booking->customer->email,
+                    // include other customer fields you need
+                ] : null,
+                'equipment' => $booking->equipment ? [
+                    'id' => $booking->equipment->id,
+                    'name' => $booking->equipment->name,
+                    // include other equipment fields you need
+                ] : null,
+                'created_at' => $booking->created_at,
+            ];
+        });
+
+    return Inertia::render('UserProfile/Bookings', [
+        'bookings' => $bookings,
+        'user' => auth()->user(),
+        'statusLabels' => [
+            'pending' => 'Pending Approval',
+            'approved' => 'Approved',
+            'paid' => 'Paid',
+            'cancelled' => 'Cancelled'
+        ]
+    ]);
+}
+
+    /**
+     * Accept a booking request
+     */
+    public function accept($id)
+    {
+        try {
+            $booking = Booking::findOrFail($id);
+
+            // Check if user is authorized to accept this booking
+            // Add your authorization logic here
+            // e.g., if ($booking->equipment->user_id !== auth()->id()) { abort(403); }
+
+            // Check if booking is in pending status
+            if ($booking->status !== 'pending') {
+                return back()->withErrors(['message' => 'Booking cannot be accepted in its current status.']);
+            }
+
+            // Update booking status to accepted
+            $booking->update([
+                'status' => 'accepted'
+            ]);
+
+            // Optional: Send notification to customer
+            // $this->notifyCustomer($booking, 'accepted');
+
+            return back()->with('success', 'Booking has been accepted successfully.');
+
+        } catch (\Exception $e) {
+            \Log::error('Error accepting booking: ' . $e->getMessage());
+            return back()->withErrors(['message' => 'An error occurred while accepting the booking.']);
+        }
+    }
+
+    /**
+     * Deny a booking request
+     */
+    public function deny($id)
+    {
+        try {
+            $booking = Booking::findOrFail($id);
+
+            // Check if user is authorized to deny this booking
+            // Add your authorization logic here
+
+            // Check if booking is in pending status
+            if ($booking->status !== 'pending') {
+                return back()->withErrors(['message' => 'Booking cannot be denied in its current status.']);
+            }
+
+            // Update booking status to denied
+            $booking->update([
+                'status' => 'denied'
+            ]);
+
+            // Optional: Send notification to customer
+            // $this->notifyCustomer($booking, 'denied');
+
+            return back()->with('success', 'Booking has been denied.');
+
+        } catch (\Exception $e) {
+            \Log::error('Error denying booking: ' . $e->getMessage());
+            return back()->withErrors(['message' => 'An error occurred while denying the booking.']);
+        }
     }
 }

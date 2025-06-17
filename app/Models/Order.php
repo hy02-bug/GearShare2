@@ -2,85 +2,89 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int,string>
+     * @var array
      */
-    protected $fillable = [
-        'user_id',
-        'equipment_id',
-        'stripe_payment_id',
-        'start_date',
-        'end_date',
-        'total_amount',
-        'status',
-        'notes',
-    ];
+protected $fillable = [
+    'customer_id',
+    'owner_id',
+    'equipment_id',
+    'status',
+    'total_price',
+    'security_deposit',
+    'session_id',
+    'payment_intent_id',
+    'approval_token',
+    'start_date',
+    'end_date',
+    'approved_at',
+    'paid_at',
+    'customer_notes',
+    'owner_notes',
+    'pickup_location', // Added from your migration
+    'return_location', // Added from your migration
+    'rental_days',    // You're using this in your code
+    'daily_rate'      // You're using this in your code
+];
 
     /**
      * The attributes that should be cast.
      *
-     * @var array<string,string>
+     * @var array
      */
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'total_amount' => 'decimal:2',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'customer_notes' => 'array',
+        'owner_notes' => 'array',
+        'approved_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     /**
-     * Default attribute values.
-     *
-     * @var array<string,mixed>
+     * Get the customer who placed the order
      */
-    protected $attributes = [
-        'status' => 'pending',
-    ];
-
-    /**
-     * Relationship: Order belongs to a User.
-     */
-    public function user(): BelongsTo
+    public function customer(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
     /**
-     * Relationship: Order belongs to Equipment.
+     * Get the owner of the equipment
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * Get the equipment being rented
      */
     public function equipment(): BelongsTo
     {
-        return $this->belongsTo(Equipment::class);
+        return $this->belongsTo(Equipment::class, 'equipment_id');
     }
 
     /**
-     * Check if the order status is paid.
+     * Scope for approved orders
      */
-    public function isPaid(): bool
+    public function scopeApproved($query)
     {
-        return $this->status === 'paid';
+        return $query->where('status', 'approved');
     }
 
     /**
-     * Check if the order status is pending.
-     */
-    public function isPending(): bool
-    {
-        return $this->status === 'pending';
-    }
-
-    /**
-     * Scope to filter only paid orders.
+     * Scope for paid orders
      */
     public function scopePaid($query)
     {
@@ -88,15 +92,10 @@ class Order extends Model
     }
 
     /**
-     * Get rental days count.
-     *
-     * @return int
+     * Check if order is pending approval
      */
-    public function getRentalDaysAttribute(): int
+    public function isPending(): bool
     {
-        $start = $this->start_date instanceof Carbon ? $this->start_date : Carbon::parse($this->start_date);
-        $end = $this->end_date instanceof Carbon ? $this->end_date : Carbon::parse($this->end_date);
-
-        return $end->diffInDays($start);
+        return $this->status === 'pending';
     }
 }
