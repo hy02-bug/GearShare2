@@ -9,7 +9,6 @@ use App\Models\Order;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Requests\UpdateOrderRequest;
 use Illuminate\Support\Carbon;
-//use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -114,112 +113,12 @@ public function create($equipmentId)
         //
     }
 
-    // public function summary($equipmentId)
-    // {
-    //     $equipment = Equipment::findOrFail($equipmentId);
-
-    //     return Inertia::render('OrderSummary', [
-    //         'equipment' => $equipment,
-    //         'user' => auth()->user(), // For prefilling user details
-    //     ]);
-
-    // }
 
         public function checkout()
     {
         return Inertia::render('Checkout'
         );
     }
-// public function handleBookingRequest(Request $request, $equipmentId)
-// {
-//     // Debug: Check authentication first
-//     if (!auth()->check()) {
-//         return back()->withErrors(['error' => 'You must be logged in to make a booking']);
-//     }
-
-//     Log::info('User authenticated', ['user_id' => auth()->id()]);
-
-//     // Updated validation to match form field names
-//     $validated = $request->validate([
-//         'equipmentId' => 'required|integer|exists:equipment,id',
-//         'pickupLocation' => 'required|string|max:255',
-//         'returnLocation' => 'required|string|max:255',
-//         'pickupDate' => 'required|date|after_or_equal:today',
-//         'returnDate' => 'required|date|after:pickupDate',
-//         'totalPrice' => 'required|numeric|min:0',
-//         'customerNotes' => 'nullable|string|max:1000',
-//     ]);
-
-//     Log::info('Validation passed', ['validated_data' => $validated]);
-
-//     try {
-//         // Debug: Log the start of the process
-//         Log::info('Starting order creation', [
-//             'equipment_id' => $validated['equipmentId'],
-//             'validated_data' => $validated
-//         ]);
-
-//         // Get equipment details
-//         $equipment = Equipment::findOrFail($validated['equipmentId']);
-//         Log::info('Equipment found', [
-//             'equipment_id' => $equipment->id,
-//             'rental_price' => $equipment->rentalPrice,
-//             'user_id' => $equipment->user_id
-//         ]);
-
-//         // Use submitted total price
-//         $totalPrice = $validated['totalPrice'];
-//         Log::info('Using submitted total price', ['total_price' => $totalPrice]);
-
-//         // Create order with all the fields
-//         Log::info('About to create order with data', [
-//             'customer_id' => auth()->id(),
-//             'owner_id' => $equipment->user_id,
-//             'equipment_id' => $equipment->id,
-//             'total_price' => $totalPrice
-//         ]);
-
-//         $orderData = [
-//             'customer_id' => auth()->id(),
-//             'owner_id' => $equipment->user_id,
-//             'equipment_id' => $validated['equipmentId'],
-//             'status' => 'pending',
-//             'total_price' => $totalPrice,
-//             'security_deposit' => $equipment->rentalPrice * 0.2, // Still need equipment rental price for deposit
-//             'start_date' => $validated['pickupDate'],
-//             'end_date' => $validated['returnDate'],
-//             'pickup_location' => $validated['pickupLocation'],
-//             'return_location' => $validated['returnLocation'],
-//             'daily_rate' => $equipment->rentalPrice, // Store original daily rate for reference
-//             'customer_notes' => $validated['customerNotes'] ? [$validated['customerNotes']] : null,
-//             'owner_notes' => null,
-//         ];
-
-//         Log::info('Order data prepared', $orderData);
-
-//         $order = Order::create($orderData);
-
-//         Log::info('Order created successfully', [
-//             'order_id' => $order->id,
-//             'total_price' => $totalPrice,
-//             'daily_rate' => $equipment->rentalPrice
-//         ]);
-
-//         return redirect()->route('/Home') // Fixed route name
-//                ->with('success', 'Booking request submitted successfully!');
-
-//     } catch (\Exception $e) {
-//         Log::error('Booking failed: ' . $e->getMessage(), [
-//             'equipment_id' => $validated['equipmentId'] ?? $equipmentId,
-//             'customer_id' => auth()->id(),
-//             'line' => $e->getLine(),
-//             'file' => $e->getFile(),
-//             'trace' => $e->getTraceAsString()
-//         ]);
-
-//         return back()->withErrors(['error' => $e->getMessage()])->withInput();
-//     }
-// }
 
 
 public function handleBookingRequest(Request $request, $equipmentId)
@@ -334,6 +233,7 @@ public function fetchOwnerOrders()
     /**
      * Accept a booking request
      */
+     
     public function accept($id)
     {
         try {

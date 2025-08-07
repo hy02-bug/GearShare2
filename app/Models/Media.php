@@ -28,6 +28,8 @@ class Media extends Model
         'sort_order' => 'integer',
     ];
 
+    protected $appends = ['url'];
+
     /**
      * Get the equipment that owns the media
      */

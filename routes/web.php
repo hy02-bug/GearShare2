@@ -75,5 +75,4 @@ Route::get('/debug-stripe-keys', function() {
     ];
 });
 
-
 require __DIR__.'/auth.php';

@@ -18,11 +18,20 @@ class HomeController extends Controller
 {
 public function index()
 {
-    $equipment = Equipment::with(['owner:id,name'])->get(); // Add eager loading
+$equipment = Equipment::with(['media', 'owner'])->get()->map(function ($item) {
+        // Transform each equipment item to include media URLs
+        $itemArray = $item->toArray();
+        $itemArray['media'] = $item->media->map(function ($media) {
+            return [
+                ...$media->toArray(),
+                'url' => $media->url // This will call your getUrlAttribute()
+            ];
+        });
+        return $itemArray;
+    });
 
     return Inertia::render('Home', [
-        'user' => Auth::user(),
-        'equipment' => $equipment,
+        'equipment' => $equipment
     ]);
 }
 }

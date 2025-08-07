@@ -196,10 +196,10 @@ export default function ProductRentalForm({ user }) {
                                     required
                                 >
                                     <option value="">Select condition</option>
-                                    <option value="excellent">Excellent</option>
-                                    <option value="very-good">Very Good</option>
-                                    <option value="good">Good</option>
-                                    <option value="fair">Fair</option>
+                                    <option value="excellent">Like-New</option>
+                                    <option value="very-good">Rarely-Used</option>
+                                    <option value="good">Well-Used</option>
+                                    <option value="fair">Worn out</option>
                                 </select>
                                 {errors.condition && <div className="text-red-600 text-sm mt-1">{errors.condition}</div>}
                             </div>

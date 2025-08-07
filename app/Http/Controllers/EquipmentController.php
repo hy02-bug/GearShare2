@@ -24,13 +24,19 @@ class EquipmentController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        $equipment = Equipment::with('owner:id,name')->get(); // Eager load owner name
-        return Inertia::render('Equipment_index', [
+public function index()
+{
+    $equipment = Equipment::with(['owner:id,name', 'media'])->get();
+
+    // Add the primary image URL to each equipment
+    $equipment->each(function ($item) {
+        $item->primary_image_url = $item->primaryImageUrl;
+    });
+
+    return Inertia::render('Equipment_index', [
         'equipment' => $equipment
     ]);
-    }
+}
 
     /**
      * Show the form for creating a new resource.
@@ -217,36 +223,52 @@ class EquipmentController extends Controller
 public function show($id)
 {
     $equipment = Equipment::with([
-        'media', // Ensure media relationship is loaded
-        'owner:id,name,email'
+        'media', // Load media relationship
+        'owner:id,name,email' // Load owner with needed fields
     ])->findOrFail($id);
 
-    // Get the first media item's URL (or null if no media)
-    $equipment->image_url = $equipment->media->first()?->getUrl();
+    // Transform media collection to include URLs and other needed attributes
+    $equipment->media = $equipment->media->map(function ($media) {
+        return [
+            'id' => $media->id,
+            'url' => $media->url, // Using the accessor you defined in Media model
+            'original_url' => $media->url, // Alias for compatibility
+            'is_primary' => $media->is_primary,
+            'sort_order' => $media->sort_order,
+            'file_name' => $media->file_name,
+            'file_type' => $media->file_type
+        ];
+    });
 
-    $existingRequest = auth()->user()
+    // For backward compatibility with image_path
+    if (!$equipment->media->count() && $equipment->image_path) {
+        $equipment->media->push([
+            'url' => Storage::url($equipment->image_path),
+            'original_url' => Storage::url($equipment->image_path),
+            'is_primary' => true
+        ]);
+    }
+
+    // Check for existing booking request
+    $existingRequest = auth()->check() ? auth()->user()
         ->customerBookings()
         ->where('equipment_id', $equipment->id)
-        ->first();
+        ->first() : null;
 
     return Inertia::render('dummy', [
-        'user' => Auth::user(),
         'equipment' => $equipment,
         'existingRequest' => $existingRequest !== null,
+        'auth' => [
+            'user' => auth()->user() ? [
+                'id' => auth()->id(),
+                'name' => auth()->user()->name,
+                'email' => auth()->user()->email
+                // Add any other user fields you need in the frontend
+            ] : null
+        ]
     ]);
 }
 
-        /**
-     * Show equipment with media
-     */
-    // public function show(Equipment $equipment)
-    // {
-    //     $equipment->load(['media', 'owner']);
-
-    //     return inertia('Equipment/Show', [
-    //         'equipment' => $equipment,
-    //     ]);
-    // }
 
     /**
      * Show the form for editing the specified resource.

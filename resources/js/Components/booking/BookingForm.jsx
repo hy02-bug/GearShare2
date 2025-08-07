@@ -134,7 +134,7 @@ export default function BookingForm({ defaultLocation = '', equipmentId, equipme
         {errors.message && <p className="mt-4 text-sm text-red-600">{errors.message}</p>}
 
         {/* Debug info - optional in dev */}
-        <div className="mt-4 p-3 bg-gray-100 rounded text-sm">
+        {/* <div className="mt-4 p-3 bg-gray-100 rounded text-sm">
           <p>Debug Info:</p>
           <p>Equipment ID: {data.equipmentId}</p>
           <p>Pickup Location: {data.pickupLocation || 'Not entered'}</p>
@@ -144,7 +144,7 @@ export default function BookingForm({ defaultLocation = '', equipmentId, equipme
           <p>Rental Price: {equipment?.rentalPrice ?? 'Not available'}</p>
           <p>Total Price: {data.totalPrice}</p>
           <p>Already Submitted: {isSubmitted ? 'Yes' : 'No'}</p>
-        </div>
+        </div> */}
 
         {/* Calculate Price */}
         <button

@@ -7,10 +7,19 @@ import SellerInfo from '@/Components/product/SellerInfo';
 import BookingForm from '@/Components/booking/BookingForm';
 // import ReviewsSection from '@/Components/review/ReviewsSection';
 
-export default function EquipmentDetailPage({ equipment,existingRequest }) {
+export default function EquipmentDetailPage({ equipment, existingRequest, auth  }) {
+
+  const isOwner = auth.user?.id === equipment.owner?.id;
+    // Get all media URLs (assuming equipment.media is an array of media objects)
+  const mediaUrls = equipment.media?.map(mediaItem => mediaItem.original_url) || [];
+
+  // Fallback to image_path if no media exists (backward compatibility)
+  const fallbackImage = equipment.image_path ? [equipment.image_path] : ['/placeholder-image.jpg'];
+
   const product = {
     title: equipment.name,
-    images: equipment.image_path ? [equipment.image_path] : ['/placeholder-image.jpg'],
+     images: equipment.media?.length ? equipment.media :
+         (equipment.image_path ? [{ url: equipment.image_path }] : []),
     description: equipment.description,
     size: equipment.size,
     condition: equipment.condition,
@@ -19,7 +28,7 @@ export default function EquipmentDetailPage({ equipment,existingRequest }) {
       { name: "Sport", value: equipment.sports },
       { name: "Availability", value: equipment.dateAvailability },
     ]
-  };
+  }
 
   const seller = equipment.owner ? {
     id: equipment.owner.id,
@@ -75,13 +84,18 @@ export default function EquipmentDetailPage({ equipment,existingRequest }) {
             <ProductSpecs specs={product.specs} />
           </div>
         </div>
-
-        <BookingForm
-          defaultLocation={equipment.location}
-          equipmentId={equipment.id}
-          equipment={equipment}
-          existingRequest={existingRequest}
-        />
+        {/* Only show BookingForm if user is not the owner */}
+        {isOwner ? (
+            <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+            This is your equipment listing. You can edit it from your dashboard.
+            </div>)
+            : (<BookingForm
+            defaultLocation={equipment.location}
+            equipmentId={equipment.id}
+            equipment={equipment}
+            existingRequest={existingRequest}
+          />
+        ) }
 
         {/* <ReviewsSection equipmentId={equipment.id} /> */}
       </div>
